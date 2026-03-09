@@ -46,34 +46,92 @@
       <p style="color:var(--text-mid);font-size:14px">Click an album to expand and view photos. Add your images by replacing the photo slots with <code style="background:var(--bg2);padding:1px 5px;border-radius:3px">&lt;img&gt;</code> tags.</p>
     </div>
 
-    <div class="albums-grid">
-
-      <div class="album-card" id="street">
-        <div class="album-header">
-          <div class="album-title">jimbo</div>
-        </div>
-        <div class="album-mosaic">
-          <div class="mosaic-cell mc-street1"><div class="photo-placeholder">photo</div></div>
-          <div class="mosaic-cell mc-street2"><div class="photo-placeholder">photo</div></div>
-          <div class="mosaic-cell mc-street3"><div class="photo-placeholder">photo</div></div>
-          <div class="mosaic-cell mc-street4"><div class="photo-placeholder">photo</div></div>
-        </div>
-        <div class="album-desc">Your album description goes here.</div>
-        <a href="#street-photos" class="btn btn-primary btn-sm" onclick="toggleAlbum('street-photos',event)">VIEW ALBUM ↓</a>
-        <div class="photo-grid-expanded" id="street-photos">
-          <div class="upload-hint">📌 Replace these slots with <code>&lt;img src="photos/street/yourfile.jpg" alt=""&gt;</code></div>
-          <div class="expanded-grid">
-            <div class="photo-slot">add photo here</div>
-            <div class="photo-slot">add photo here</div>
-            <div class="photo-slot">add photo here</div>
-            <div class="photo-slot">add photo here</div>
-            <div class="photo-slot">add photo here</div>
-            <div class="photo-slot">add photo here</div>
-          </div>
-        </div>
-      </div>
-
+    <div class="albums-grid" id="albums-grid">
+      <!-- Albums will be generated here from gallery_data.json -->
     </div>
+
+    <script>
+      // Utility to create DOM elements with classes/attrs
+      function el(tag, options = {}){
+        const d = document.createElement(tag);
+        if(options.class) d.className = options.class;
+        if(options.text) d.textContent = options.text;
+        if(options.html) d.innerHTML = options.html;
+        if(options.attrs) Object.keys(options.attrs).forEach(k => d.setAttribute(k, options.attrs[k]));
+        return d;
+      }
+
+      // Toggle expanded album
+      function toggleAlbum(id, e){
+        if(e) e.preventDefault();
+        const el = document.getElementById(id);
+        if(!el) return;
+        el.classList.toggle('open');
+      }
+
+      // Lightbox open
+      function openLightbox(src){
+        document.getElementById('lightbox-img').src = src;
+        document.getElementById('lightbox').classList.add('open');
+      }
+
+      // Build album cards from JSON data
+      fetch('gallery_data.json').then(r => r.json()).then(data => {
+        const container = document.getElementById('albums-grid');
+        if(!container) return;
+        Object.keys(data).sort().forEach((albumName, idx) => {
+          const images = data[albumName];
+          // sanitize album name for use in ids (replace whitespace with dashes)
+          const safeName = albumName.replace(/\s+/g,'-');
+
+          const card = el('div',{class:'album-card', attrs:{'id':`album-${safeName}`}});
+          const header = el('div',{class:'album-header'});
+          header.appendChild(el('div',{class:'album-title', text:albumName}));
+          card.appendChild(header);
+
+          const mosaic = el('div',{class:'album-mosaic'});
+          // show up to 4 mosaic thumbnails
+          images.slice(0,4).forEach((src,i) => {
+            const cell = el('div',{class:'mosaic-cell'});
+            const img = el('img',{class:'mosaic-thumb', attrs:{src:src, alt:albumName+' '+(i+1)}});
+            img.addEventListener('click', () => openLightbox(src));
+            cell.appendChild(img);
+            mosaic.appendChild(cell);
+          });
+          card.appendChild(mosaic);
+
+          card.appendChild(el('div',{class:'album-desc', text:`${images.length} photos`}));
+
+          const expandedId = `expanded-${safeName}`;
+          const viewBtn = el('a',{class:'btn btn-primary btn-sm', text:'VIEW ALBUM ↓', attrs:{href:'#'+expandedId}});
+          viewBtn.addEventListener('click', (e) => toggleAlbum(expandedId,e));
+          card.appendChild(viewBtn);
+
+          const expanded = el('div',{class:'photo-grid-expanded', attrs:{id:expandedId}});
+          const hint = el('div',{class:'upload-hint', html:'📌 These photos are loaded from <code>gallery_data.json</code>'});
+          expanded.appendChild(hint);
+
+          const grid = el('div',{class:'expanded-grid'});
+          images.forEach(src => {
+            const slot = el('div',{class:'photo-slot'});
+            const img = el('img',{attrs:{src:src, alt:''}});
+            img.addEventListener('click', (e) => { openLightbox(e.target.src); });
+            slot.appendChild(img);
+            grid.appendChild(slot);
+          });
+          expanded.appendChild(grid);
+          card.appendChild(expanded);
+
+          container.appendChild(card);
+        });
+
+        // Attach delegated close for lightbox images if additional handling needed
+      }).catch(err => {
+        console.error('Could not load gallery_data.json', err);
+        const container = document.getElementById('albums-grid');
+        if(container) container.appendChild(el('div',{class:'card', text:'No galleries found. Run generate_gallery.py to create gallery_data.json.'}));
+      });
+    </script>
   </div>
 
   <div class="lightbox" id="lightbox" onclick="closeLightbox()">
