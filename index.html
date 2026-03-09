@@ -169,5 +169,64 @@
     document.getElementById('visit-count').textContent = v.toLocaleString();
   </script>
 
+  <script>
+    // Populate homepage gallery preview and recent shots from gallery_data.json
+    (function(){
+      fetch('gallery_data.json').then(r => r.json()).then(data => {
+        // Build gallery preview (use first image of each album)
+        const galleryGrid = document.querySelector('.gallery-grid');
+        if(galleryGrid){
+          galleryGrid.innerHTML = '';
+          const albums = Object.keys(data).sort();
+          albums.slice(0,4).forEach(albumName => {
+            const imgs = data[albumName];
+            if(!imgs || imgs.length===0) return;
+            const safeName = albumName.replace(/\s+/g,'-');
+            const a = document.createElement('a');
+            a.href = `gallery.html#${safeName}`;
+            a.className = 'gallery-thumb';
+
+            const thumbImg = document.createElement('img');
+            thumbImg.className = 'thumb-img';
+            thumbImg.src = imgs[0];
+            thumbImg.alt = albumName;
+            a.appendChild(thumbImg);
+
+            const info = document.createElement('div');
+            info.className = 'thumb-info';
+            const name = document.createElement('div'); name.className='thumb-name'; name.textContent = albumName;
+            const count = document.createElement('div'); count.className='thumb-count'; count.textContent = `${imgs.length} photos`;
+            info.appendChild(name); info.appendChild(count);
+            a.appendChild(info);
+
+            galleryGrid.appendChild(a);
+          });
+        }
+
+        // Fill recent shots (most recent = last files found)
+        const all = [];
+        Object.keys(data).forEach(k => data[k].forEach(p => all.push(p)));
+        const recent = all.slice(-4).reverse();
+        const recentSlots = document.querySelectorAll('.recent-grid .recent-slot');
+        recentSlots.forEach((slot, i) => {
+          slot.innerHTML = '';
+          if(recent[i]){
+            const a = document.createElement('a');
+            a.href = recent[i];
+            a.target = '_blank';
+            const img = document.createElement('img');
+            img.src = recent[i]; img.alt = 'Recent shot'; img.style.width = '100%'; img.style.height = '100%'; img.style.objectFit = 'cover';
+            a.appendChild(img);
+            slot.appendChild(a);
+          }
+        });
+
+      }).catch(err => {
+        // silent fail — gallery still works, but previews won't load
+        console.warn('Could not load gallery_data.json for homepage previews', err);
+      });
+    })();
+  </script>
+
 </body>
 </html>
