@@ -145,13 +145,13 @@ strong { font-weight: 700; }
   font-family: var(--font-hero);
   font-size: clamp(52px, 10vw, 96px);
   color: #c8e6f5;
-  letter-spacing: 6px;
+  letter-spacing: 1px;
   line-height: 1;
   text-shadow: 0 0 40px rgba(200,230,245,0.3);
 }
 .title-accent {
   color: var(--accent);
-  text-shadow: 0 0 30px var(--accent-glow), 0 0 60px var(--accent-glow);
+  text-shadow: 0 0 40px rgba(200,230,245,0.3);
 }
 .header-tagline {
   font-family: var(--font-body);
