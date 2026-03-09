@@ -169,6 +169,72 @@
     document.getElementById('visit-count').textContent = v.toLocaleString();
   </script>
 
+  <!-- Lightbox overlay for homepage (reusable carousel) -->
+  <style>
+    .lb-overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:9999}
+    .lb-overlay.open{display:flex}
+    .lb-backdrop{position:absolute;inset:0;background:rgba(0,0,0,0.75)}
+    .lb-shell{position:relative;max-width:95%;max-height:90%;z-index:2;display:flex;flex-direction:column;align-items:center}
+    .lb-viewport{width:min(1100px,90vw);height:min(700px,70vh);display:flex;align-items:center;justify-content:center;background:#111;border-radius:6px;overflow:hidden}
+    .lb-viewport img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+    .lb-controls{position:absolute;top:50%;left:12px;transform:translateY(-50%);z-index:3}
+    .lb-controls .btn{background:rgba(255,255,255,0.08);border:none;color:#fff;padding:8px 12px;border-radius:4px;cursor:pointer}
+    .lb-next{position:absolute;right:12px;top:50%;transform:translateY(-50%)}
+    .lb-close{position:relative;margin:10px auto 6px auto;background:transparent;border:0;color:#fff;font-size:14px;cursor:pointer}
+    .lb-thumbs{display:flex;gap:6px;padding-top:8px;overflow-x:auto;max-width:90vw}
+    .lb-thumbs img{height:64px;cursor:pointer;opacity:0.7}
+    .lb-thumbs img.active{outline:2px solid #fff;opacity:1}
+    @media (max-width:600px){.lb-viewport{height:50vh}}
+  </style>
+
+  <div id="lb-overlay" class="lb-overlay" aria-hidden="true">
+    <div class="lb-backdrop" onclick="closeLightbox()"></div>
+    <div class="lb-shell" role="dialog" aria-modal="true">
+      <button class="lb-close" onclick="closeLightbox()">CLOSE ×</button>
+      <div class="lb-viewport">
+        <button class="lb-controls btn lb-prev" onclick="prevLightbox()">◀</button>
+        <img id="lb-img" src="" alt="">
+        <button class="lb-controls btn lb-next" onclick="nextLightbox()">▶</button>
+      </div>
+      <div class="lb-thumbs" id="lb-thumbs" aria-hidden="false"></div>
+    </div>
+  </div>
+
+  <script>
+    // lightbox for homepage
+    const LB = {images:[], idx:0};
+    function openLightbox(images, index){
+      if(!images || images.length===0) return;
+      LB.images = images.slice();
+      LB.idx = index || 0;
+      renderLightbox();
+      document.getElementById('lb-overlay').classList.add('open');
+      document.getElementById('lb-overlay').setAttribute('aria-hidden','false');
+      document.addEventListener('keydown', lbKeyHandler);
+    }
+    function closeLightbox(){
+      document.getElementById('lb-overlay').classList.remove('open');
+      document.getElementById('lb-overlay').setAttribute('aria-hidden','true');
+      document.removeEventListener('keydown', lbKeyHandler);
+    }
+    function renderLightbox(){
+      const img = document.getElementById('lb-img');
+      img.src = LB.images[LB.idx];
+      const thumbs = document.getElementById('lb-thumbs');
+      thumbs.innerHTML = '';
+      LB.images.forEach((s,i)=>{
+        const t = document.createElement('img');
+        t.src = s; t.alt = '';
+        if(i===LB.idx) t.classList.add('active');
+        t.addEventListener('click', ()=>{ LB.idx = i; renderLightbox(); });
+        thumbs.appendChild(t);
+      });
+    }
+    function nextLightbox(){ LB.idx = (LB.idx+1) % LB.images.length; renderLightbox(); }
+    function prevLightbox(){ LB.idx = (LB.idx-1+LB.images.length) % LB.images.length; renderLightbox(); }
+    function lbKeyHandler(e){ if(e.key==='ArrowRight') nextLightbox(); else if(e.key==='ArrowLeft') prevLightbox(); else if(e.key==='Escape') closeLightbox(); }
+  </script>
+
   <script>
     // Populate homepage gallery preview and recent shots from gallery_data.json
     (function(){
@@ -199,6 +265,8 @@
             info.appendChild(name); info.appendChild(count);
             a.appendChild(info);
 
+            // open album in lightbox when clicked
+            a.addEventListener('click', (e) => { e.preventDefault(); openLightbox(imgs, 0); });
             galleryGrid.appendChild(a);
           });
         }
@@ -212,8 +280,8 @@
           slot.innerHTML = '';
           if(recent[i]){
             const a = document.createElement('a');
-            a.href = recent[i];
-            a.target = '_blank';
+            a.href = '#';
+            a.addEventListener('click', (ev) => { ev.preventDefault(); openLightbox(recent, i); });
             const img = document.createElement('img');
             img.src = recent[i]; img.alt = 'Recent shot'; img.style.width = '100%'; img.style.height = '100%'; img.style.objectFit = 'cover';
             a.appendChild(img);

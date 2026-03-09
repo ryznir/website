@@ -90,11 +90,11 @@
           card.appendChild(header);
 
           const mosaic = el('div',{class:'album-mosaic'});
-          // show up to 4 mosaic thumbnails
+          // show up to 4 mosaic thumbnails (open album lightbox at that index)
           images.slice(0,4).forEach((src,i) => {
             const cell = el('div',{class:'mosaic-cell'});
             const img = el('img',{class:'mosaic-thumb', attrs:{src:src, alt:albumName+' '+(i+1)}});
-            img.addEventListener('click', () => openLightbox(src));
+            img.addEventListener('click', () => openLightbox(images, i));
             cell.appendChild(img);
             mosaic.appendChild(cell);
           });
@@ -112,10 +112,10 @@
           expanded.appendChild(hint);
 
           const grid = el('div',{class:'expanded-grid'});
-          images.forEach(src => {
+          images.forEach((src, idx) => {
             const slot = el('div',{class:'photo-slot'});
             const img = el('img',{attrs:{src:src, alt:''}});
-            img.addEventListener('click', (e) => { openLightbox(e.target.src); });
+            img.addEventListener('click', (e) => { openLightbox(images, idx); });
             slot.appendChild(img);
             grid.appendChild(slot);
           });
@@ -134,10 +134,35 @@
     </script>
   </div>
 
-  <div class="lightbox" id="lightbox" onclick="closeLightbox()">
-    <div class="lightbox-inner">
-      <img id="lightbox-img" src="" alt="">
-      <div class="lightbox-close">CLOSE ×</div>
+  <!-- Lightbox overlay (album carousel with thumbnails) -->
+  <style>
+    /* Minimal lightbox styles scoped here so pages work without editing style.css */
+    .lb-overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:9999}
+    .lb-overlay.open{display:flex}
+    .lb-backdrop{position:absolute;inset:0;background:rgba(0,0,0,0.75)}
+    .lb-shell{position:relative;max-width:95%;max-height:90%;z-index:2;display:flex;flex-direction:column;align-items:center}
+    .lb-viewport{width:min(1100px,90vw);height:min(700px,70vh);display:flex;align-items:center;justify-content:center;background:#111;border-radius:6px;overflow:hidden}
+    .lb-viewport img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+    .lb-controls{position:absolute;top:50%;left:12px;transform:translateY(-50%);z-index:3}
+    .lb-controls .btn{background:rgba(255,255,255,0.08);border:none;color:#fff;padding:8px 12px;border-radius:4px;cursor:pointer}
+    .lb-next{position:absolute;right:12px;top:50%;transform:translateY(-50%)}
+    .lb-close{position:relative;margin:10px auto 6px auto;background:transparent;border:0;color:#fff;font-size:14px;cursor:pointer}
+    .lb-thumbs{display:flex;gap:6px;padding-top:8px;overflow-x:auto;max-width:90vw}
+    .lb-thumbs img{height:64px;cursor:pointer;opacity:0.7}
+    .lb-thumbs img.active{outline:2px solid #fff;opacity:1}
+    @media (max-width:600px){.lb-viewport{height:50vh}}
+  </style>
+
+  <div id="lb-overlay" class="lb-overlay" aria-hidden="true">
+    <div class="lb-backdrop" onclick="closeLightbox()"></div>
+    <div class="lb-shell" role="dialog" aria-modal="true">
+      <button class="lb-close" onclick="closeLightbox()">CLOSE ×</button>
+      <div class="lb-viewport">
+        <button class="lb-controls btn lb-prev" onclick="prevLightbox()">◀</button>
+        <img id="lb-img" src="" alt="">
+        <button class="lb-controls btn lb-next" onclick="nextLightbox()">▶</button>
+      </div>
+      <div class="lb-thumbs" id="lb-thumbs" aria-hidden="false"></div>
     </div>
   </div>
 
@@ -153,17 +178,39 @@
   </footer>
 
   <script>
-    function toggleAlbum(id, e) {
-      e.preventDefault();
-      document.getElementById(id).classList.toggle('open');
+    // lightbox state
+    const LB = {images:[], idx:0};
+    function openLightbox(images, index){
+      if(!images || images.length===0) return;
+      LB.images = images.slice();
+      LB.idx = index || 0;
+      renderLightbox();
+      document.getElementById('lb-overlay').classList.add('open');
+      document.getElementById('lb-overlay').setAttribute('aria-hidden','false');
+      document.addEventListener('keydown', lbKeyHandler);
     }
-    document.querySelectorAll('.expanded-grid img').forEach(img => {
-      img.addEventListener('click', e => {
-        document.getElementById('lightbox-img').src = e.target.src;
-        document.getElementById('lightbox').classList.add('open');
+    function closeLightbox(){
+      document.getElementById('lb-overlay').classList.remove('open');
+      document.getElementById('lb-overlay').setAttribute('aria-hidden','true');
+      document.removeEventListener('keydown', lbKeyHandler);
+    }
+    function renderLightbox(){
+      const img = document.getElementById('lb-img');
+      img.src = LB.images[LB.idx];
+      // thumbs
+      const thumbs = document.getElementById('lb-thumbs');
+      thumbs.innerHTML = '';
+      LB.images.forEach((s,i)=>{
+        const t = document.createElement('img');
+        t.src = s; t.alt = '';
+        if(i===LB.idx) t.classList.add('active');
+        t.addEventListener('click', ()=>{ LB.idx = i; renderLightbox(); });
+        thumbs.appendChild(t);
       });
-    });
-    function closeLightbox() { document.getElementById('lightbox').classList.remove('open'); }
+    }
+    function nextLightbox(){ LB.idx = (LB.idx+1) % LB.images.length; renderLightbox(); }
+    function prevLightbox(){ LB.idx = (LB.idx-1+LB.images.length) % LB.images.length; renderLightbox(); }
+    function lbKeyHandler(e){ if(e.key==='ArrowRight') nextLightbox(); else if(e.key==='ArrowLeft') prevLightbox(); else if(e.key==='Escape') closeLightbox(); }
   </script>
 </body>
 </html>
