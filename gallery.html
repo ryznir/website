@@ -41,10 +41,10 @@
 
   <div class="page-wrapper-wide">
 
-    <div class="card" style="margin-bottom:0">
+    <!-- <div class="card" style="margin-bottom:0">
       <div class="card-title">ALL PHOTO GALLERIES</div>
       <p style="color:var(--text-mid);font-size:14px">Click an album to expand and view photos. Add your images by replacing the photo slots with <code style="background:var(--bg2);padding:1px 5px;border-radius:3px">&lt;img&gt;</code> tags.</p>
-    </div>
+    </div> -->
 
     <div class="albums-grid" id="albums-grid">
       <!-- Albums will be generated here from gallery_data.json -->
@@ -116,7 +116,7 @@
           card.appendChild(viewBtn);
 
           const expanded = el('div',{class:'photo-grid-expanded', attrs:{id:expandedId}});
-          const hint = el('div',{class:'upload-hint', html:'📌 These photos are loaded from <code>gallery_data.json</code>'});
+          // const hint = el('div',{class:'upload-hint', html:'📌 These photos are loaded from <code>gallery_data.json</code>'});
           expanded.appendChild(hint);
 
           const grid = el('div',{class:'expanded-grid'});
