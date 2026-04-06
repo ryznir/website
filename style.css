@@ -719,6 +719,5 @@ strong { font-weight: 700; }
   .ribbon-tag { display: none; }
 }
 @media (max-width: 480px) {
-  .ribbon-links { display: none; }
   .site-title { font-size: 52px; }
 }
